@@ -38,8 +38,16 @@ description = "Full suite including container- and database-backed tests."
 env = { CGO_ENABLED = "1" }
 run = "go test ./... -race"
 
+[tasks.api]
+description = "Regenerate api.txt, the public API as a golden file (CHARTER.md)."
+run = "go run ./cmd/apilist"
+
+[tasks.api-check]
+description = "Fail if api.txt is stale. CHARTER.md makes growing the public surface a reviewed diff, so the golden file has to be diffed somewhere; the gate is that somewhere."
+run = ["go run ./cmd/apilist", "git diff --exit-code -- api.txt"]
+
 [tasks.check]
-depends = ["fmt-check", "lint", "build", "test-all"]
+depends = ["fmt-check", "lint", "api-check", "build", "test-all"]
 
 [tasks.migrate]
 run = "go run ./cmd/casd migrate up"

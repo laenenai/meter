@@ -24,7 +24,10 @@
 // be run by the people it exists to hold to account.
 package meter
 
-import "github.com/laenen-ai/meter/internal/domain"
+import (
+	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenen-ai/meter/ledger"
+)
 
 type (
 	// TenantID identifies the billing entity. See domain.TenantID.
@@ -48,6 +51,17 @@ type (
 
 	// Range selects the events a rollup reads. See domain.Range.
 	Range = domain.Range
+
+	// Ledger is the port every usage-ledger adapter implements. See
+	// ledger.Ledger. Constructing one, and running the conformance suite
+	// against it, is done through the ledger package itself; this alias
+	// exists so a consumer can declare a dependency on the port without a
+	// second import.
+	Ledger = ledger.Ledger
+	// Tx is a unit of work an Append joins. See ledger.Tx.
+	Tx = ledger.Tx
+	// OwnedTx is a Tx this module began itself. See ledger.OwnedTx.
+	OwnedTx = ledger.OwnedTx
 )
 
 // The two metric shapes. See domain.MetricShape.
@@ -120,4 +134,13 @@ var (
 	ErrNegativeQuantity = domain.ErrNegativeQuantity
 	// ErrInvalidRange is domain.ErrInvalidRange.
 	ErrInvalidRange = domain.ErrInvalidRange
+
+	// ErrNoTx is ledger.ErrNoTx.
+	ErrNoTx = ledger.ErrNoTx
+	// ErrForeignTx is ledger.ErrForeignTx.
+	ErrForeignTx = ledger.ErrForeignTx
+	// ErrTxDone is ledger.ErrTxDone.
+	ErrTxDone = ledger.ErrTxDone
+	// ErrIdempotencyConflict is ledger.ErrIdempotencyConflict.
+	ErrIdempotencyConflict = ledger.ErrIdempotencyConflict
 )

@@ -1,0 +1,73 @@
+# The public API of this module, as a golden file. Regenerate with `mise run api`.
+# Growing this surface is a reviewed diff: see CHARTER.md.
+
+package meter // import "github.com/laenen-ai/meter"
+
+const DimensionAgentRunID = domain.DimensionAgentRunID
+const DimensionCapabilityChain = domain.DimensionCapabilityChain
+const DimensionDocumentID = domain.DimensionDocumentID
+const DimensionFilesetID = domain.DimensionFilesetID
+const DimensionJobID = domain.DimensionJobID
+const DimensionLane = domain.DimensionLane
+const DimensionModelID = domain.DimensionModelID
+const DimensionPrincipalID = domain.DimensionPrincipalID
+const DimensionProcessorID = domain.DimensionProcessorID
+const DimensionProcessorVersion = domain.DimensionProcessorVersion
+const DimensionRegion = domain.DimensionRegion
+const DimensionTier = domain.DimensionTier
+const MaxDimensionKeyLen = domain.MaxDimensionKeyLen
+const MaxDimensionValueLen = domain.MaxDimensionValueLen
+const MaxDimensions = domain.MaxDimensions
+const ShapeEvent = domain.ShapeEvent
+const ShapeGaugeDelta = domain.ShapeGaugeDelta
+const ShapeUnspecified = domain.ShapeUnspecified
+const UnitByte = domain.UnitByte
+const UnitCount = domain.UnitCount
+const UnitMillisecond = domain.UnitMillisecond
+const UnitPage = domain.UnitPage
+const UnitToken = domain.UnitToken
+type Dimensions = domain.Dimensions
+type IdempotencyKey = domain.IdempotencyKey
+type Ledger = ledger.Ledger
+type MetricID = domain.MetricID
+type MetricShape = domain.MetricShape
+type OwnedTx = ledger.OwnedTx
+type Quantity = domain.Quantity
+type Range = domain.Range
+type TenantID = domain.TenantID
+type Tx = ledger.Tx
+type Unit = domain.Unit
+type UsageEvent = domain.UsageEvent
+var ErrForeignTx = ledger.ErrForeignTx
+var ErrIdempotencyConflict = ledger.ErrIdempotencyConflict
+var ErrInvalidEvent = domain.ErrInvalidEvent
+var ErrInvalidRange = domain.ErrInvalidRange
+var ErrNegativeQuantity = domain.ErrNegativeQuantity
+var ErrNoTx = ledger.ErrNoTx
+var ErrTxDone = ledger.ErrTxDone
+
+package ledger // import "github.com/laenen-ai/meter/ledger"
+
+func (m *Memory) Append(_ context.Context, tx Tx, events ...domain.UsageEvent) error
+func (m *Memory) Begin(_ context.Context) (OwnedTx, error)
+func (m *Memory) ReadRange(_ context.Context, tx Tx, r domain.Range) ([]domain.UsageEvent, error)
+func NewMemory() *Memory
+func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) Ledger)
+type Ledger interface {
+	Begin(ctx context.Context) (OwnedTx, error)
+	Append(ctx context.Context, tx Tx, events ...domain.UsageEvent) error
+	ReadRange(ctx context.Context, tx Tx, r domain.Range) ([]domain.UsageEvent, error)
+}
+type Memory struct{}
+type OwnedTx interface {
+	Tx
+	Commit(ctx context.Context) error
+	Rollback(ctx context.Context) error
+}
+type Tx interface {
+	LedgerTx()
+}
+var ErrForeignTx = errors.New("meter: foreign transaction")
+var ErrIdempotencyConflict = errors.New("meter: idempotency conflict")
+var ErrNoTx = errors.New("meter: no transaction")
+var ErrTxDone = errors.New("meter: transaction already committed or rolled back")
