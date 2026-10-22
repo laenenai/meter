@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/laenen-ai/meter/ledger"
+	"github.com/laenen-ai/meter/metertest"
 )
 
 func newMemoryLedger(t *testing.T) ledger.Ledger {
@@ -12,5 +13,5 @@ func newMemoryLedger(t *testing.T) ledger.Ledger {
 }
 
 func TestMemory_PassesLedgerSuite(t *testing.T) {
-	ledger.RunLedgerSuite(t, newMemoryLedger)
+	metertest.RunLedgerSuite(t, newMemoryLedger)
 }

@@ -16,12 +16,15 @@
 // at the boundary.
 //
 // This file declares aliases, re-exported constants and re-exported
-// sentinel errors only — no behaviour and no constructors. The port itself,
-// its conformance suite and its adapters live in
-// github.com/laenen-ai/meter/ledger, which is a separate, non-internal
-// package because the charter makes adoption mean "this module's suite runs
-// green in the consumer's CI": a suite behind an internal package could not
-// be run by the people it exists to hold to account.
+// sentinel errors only — no behaviour and no constructors. The port itself
+// and its adapters live in github.com/laenen-ai/meter/ledger, and its
+// conformance suite in the sibling github.com/laenen-ai/meter/metertest.
+// Both are non-internal packages because the charter makes adoption mean
+// "this module's suite runs green in the consumer's CI": a suite behind an
+// internal package could not be run by the people it exists to hold to
+// account. The suite is a sibling rather than part of the port so that
+// importing the port does not pull testing into a consumer's production
+// binary.
 package meter
 
 import (
@@ -53,10 +56,10 @@ type (
 	Range = domain.Range
 
 	// Ledger is the port every usage-ledger adapter implements. See
-	// ledger.Ledger. Constructing one, and running the conformance suite
-	// against it, is done through the ledger package itself; this alias
-	// exists so a consumer can declare a dependency on the port without a
-	// second import.
+	// ledger.Ledger. Constructing one is done through the ledger package
+	// and running the conformance suite against it through metertest; this
+	// alias exists so a consumer can declare a dependency on the port
+	// without either import.
 	Ledger = ledger.Ledger
 	// Tx is a unit of work an Append joins. See ledger.Tx.
 	Tx = ledger.Tx

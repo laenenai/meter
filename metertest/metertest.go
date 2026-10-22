@@ -1,4 +1,22 @@
-package ledger
+// Package metertest holds the conformance suite for the ledger.Ledger
+// port: the authoritative description of the contract's edge-case
+// behaviour, and the thing a consumer runs to demonstrate that it has
+// actually adopted this module rather than merely saying so.
+//
+// It is a sibling of package ledger rather than part of it, which is the
+// relationship httptest has to http and testing/fstest has to io/fs, and
+// both halves of the reason are forced. The suite has to be callable from
+// another package and from another module — a consumer's own CI, against
+// that consumer's own wiring — which rules out a _test.go file, since
+// identifiers there are not importable. And a non-test file that imports
+// testing makes testing a dependency of whatever package holds it, so
+// keeping it out of package ledger is what stops every consumer's
+// production binary from linking the testing package and inheriting its
+// flag registrations.
+//
+// Nothing in here is production code, and nothing in production may import
+// it.
+package metertest
 
 import (
 	"context"
@@ -11,21 +29,15 @@ import (
 	"time"
 
 	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenen-ai/meter/ledger"
 )
 
-// RunLedgerSuite runs the contract every Ledger adapter must satisfy.
+// RunLedgerSuite runs the contract every ledger.Ledger adapter must satisfy.
 // newLedger is called once per subtest, receiving that subtest's own *T, so
 // an adapter that needs per-test setup and teardown (a scratch schema, a
 // fresh connection pool, a transaction that rolls back) can register it
 // with t.Cleanup inside newLedger and get fresh, isolated state for every
 // subtest.
-//
-// This file is deliberately not named suite_test.go: RunLedgerSuite must be
-// importable from another package's own adapter tests — the Postgres
-// adapter a later increment adds, and more importantly each consumer's own
-// CI, which is where the charter says adoption is actually demonstrated —
-// and that only works for a regular, non-test-only source file. This
-// mirrors the standard library's testing/fstest.TestFS.
 //
 // Every assertion here must hold for any ledger: an in-memory map, a
 // Postgres table with a unique index, or an adapter that compacts a counter
@@ -37,7 +49,7 @@ import (
 // Subtests do not call t.Parallel: an adapter may be backed by a single
 // database with a bounded connection pool, and the suite's own concurrency
 // subtests already exercise parallel use within one adapter instance.
-func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	t.Helper()
 
 	t.Run("AppendThenReadRangeRoundTrip", func(t *testing.T) {
@@ -92,7 +104,7 @@ func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // runRoundTrip pins that what goes in comes back out in canonical form:
 // UTC at microsecond precision, an empty dimension set as nil, and in the
 // order domain.CompareUsageEvents defines regardless of append order.
-func runRoundTrip(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runRoundTrip(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -129,7 +141,7 @@ func runRoundTrip(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // port, and asserts the property that distinguishes them: an event
 // metric's sum only grows as the window widens, while a gauge metric's
 // cumulative sum is a level that can fall.
-func runBothMetricShapes(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runBothMetricShapes(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	t.Run("EventMetricSumsAndNeverDecreases", func(t *testing.T) {
 		led := newLedger(t)
 		ctx := context.Background()
@@ -217,7 +229,7 @@ func runBothMetricShapes(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // is monotonic and a negative quantity is always a bug, while a gauge
 // metric's negative delta is the normal case. An adapter that accepted a
 // negative count would silently make a tenant's request total fall.
-func runQuantitySign(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runQuantitySign(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	t.Run("NegativeEventQuantityIsRejected", func(t *testing.T) {
 		led := newLedger(t)
 		ctx := context.Background()
@@ -278,7 +290,7 @@ func runQuantitySign(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // transaction, across sequential transactions, and when two transactions
 // race. A duplicate key carrying a *different* measurement is the opposite
 // case and must be loud.
-func runIdempotentReEmission(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runIdempotentReEmission(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	t.Run("WithinOneTransaction", func(t *testing.T) {
 		led := newLedger(t)
 		ctx := context.Background()
@@ -414,8 +426,8 @@ func runIdempotentReEmission(t *testing.T, newLedger func(t *testing.T) Ledger) 
 				} else {
 					rollback(ctx, t, tx)
 				}
-				if !errors.Is(err, ErrIdempotencyConflict) {
-					t.Fatalf("re-emission with a differing %s returned %v, want ErrIdempotencyConflict", tc.name, err)
+				if !errors.Is(err, ledger.ErrIdempotencyConflict) {
+					t.Fatalf("re-emission with a differing %s returned %v, want ledger.ErrIdempotencyConflict", tc.name, err)
 				}
 
 				assertEvents(t, mustRead(ctx, t, led, fullWindow()), []domain.UsageEvent{mustNormalize(t, first)})
@@ -464,7 +476,7 @@ func runIdempotentReEmission(t *testing.T, newLedger func(t *testing.T) Ledger) 
 // adapter that dropped, truncated or re-ordered them would make those
 // questions unanswerable after the fact, which is the one failure this
 // module cannot recover from later.
-func runAttributionPreserved(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runAttributionPreserved(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -537,7 +549,7 @@ func runAttributionPreserved(t *testing.T, newLedger func(t *testing.T) Ledger) 
 // window it never actually observed — reading the first half before a
 // concurrent append and the second half after — and the resulting figure
 // would be reproducible by nothing.
-func runRangeStability(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runRangeStability(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -625,7 +637,7 @@ func runRangeStability(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // rolled-back worker cannot produce a charge for work that did not happen.
 // It must also not poison the idempotency key, because the work it was
 // metering will very likely be retried and succeed.
-func runRollbackLeavesNoTrace(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runRollbackLeavesNoTrace(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -679,17 +691,17 @@ func runRollbackLeavesNoTrace(t *testing.T, newLedger func(t *testing.T) Ledger)
 // implicit auto-commit path and no adapter may invent one: an append that
 // is not part of a declared unit of work is the best-effort metering this
 // module exists to rule out.
-func runTransactionRequired(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runTransactionRequired(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	t.Run("NilTxIsErrNoTx", func(t *testing.T) {
 		led := newLedger(t)
 		ctx := context.Background()
 		e := eventAt(suiteStart, "no-tx")
 
-		if err := led.Append(ctx, nil, e); !errors.Is(err, ErrNoTx) {
-			t.Fatalf("Append with a nil tx returned %v, want ErrNoTx", err)
+		if err := led.Append(ctx, nil, e); !errors.Is(err, ledger.ErrNoTx) {
+			t.Fatalf("Append with a nil tx returned %v, want ledger.ErrNoTx", err)
 		}
-		if _, err := led.ReadRange(ctx, nil, fullWindow()); !errors.Is(err, ErrNoTx) {
-			t.Fatalf("ReadRange with a nil tx returned %v, want ErrNoTx", err)
+		if _, err := led.ReadRange(ctx, nil, fullWindow()); !errors.Is(err, ledger.ErrNoTx) {
+			t.Fatalf("ReadRange with a nil tx returned %v, want ledger.ErrNoTx", err)
 		}
 	})
 
@@ -702,11 +714,11 @@ func runTransactionRequired(t *testing.T, newLedger func(t *testing.T) Ledger) {
 		ctx := context.Background()
 		e := eventAt(suiteStart, "foreign-tx")
 
-		if err := led.Append(ctx, foreignTx{}, e); !errors.Is(err, ErrForeignTx) {
-			t.Fatalf("Append with a foreign tx returned %v, want ErrForeignTx", err)
+		if err := led.Append(ctx, foreignTx{}, e); !errors.Is(err, ledger.ErrForeignTx) {
+			t.Fatalf("Append with a foreign tx returned %v, want ledger.ErrForeignTx", err)
 		}
-		if _, err := led.ReadRange(ctx, foreignTx{}, fullWindow()); !errors.Is(err, ErrForeignTx) {
-			t.Fatalf("ReadRange with a foreign tx returned %v, want ErrForeignTx", err)
+		if _, err := led.ReadRange(ctx, foreignTx{}, fullWindow()); !errors.Is(err, ledger.ErrForeignTx) {
+			t.Fatalf("ReadRange with a foreign tx returned %v, want ledger.ErrForeignTx", err)
 		}
 
 		// And nothing was written on the side.
@@ -716,7 +728,7 @@ func runTransactionRequired(t *testing.T, newLedger func(t *testing.T) Ledger) {
 	})
 
 	// A second instance's transaction is foreign too: in a pool-set
-	// deployment one process holds a Ledger per pool, and crossing them
+	// deployment one process holds a ledger.Ledger per pool, and crossing them
 	// would write a tenant's usage into another pool's database.
 	t.Run("AnotherLedgersTxIsForeign", func(t *testing.T) {
 		led := newLedger(t)
@@ -730,8 +742,8 @@ func runTransactionRequired(t *testing.T, newLedger func(t *testing.T) Ledger) {
 		defer rollback(ctx, t, otherTx)
 
 		err = led.Append(ctx, otherTx, eventAt(suiteStart, "cross-ledger"))
-		if !errors.Is(err, ErrForeignTx) {
-			t.Fatalf("Append with another Ledger's tx returned %v, want ErrForeignTx", err)
+		if !errors.Is(err, ledger.ErrForeignTx) {
+			t.Fatalf("Append with another ledger.Ledger's tx returned %v, want ledger.ErrForeignTx", err)
 		}
 	})
 }
@@ -740,7 +752,7 @@ func runTransactionRequired(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // it. A caller that emits a job's wall time, tokens and pages in one call
 // must never get one of the three: a partial emission is worse than none,
 // because it looks complete.
-func runAppendAtomicity(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runAppendAtomicity(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -785,7 +797,7 @@ func runAppendAtomicity(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // runRangeSemantics pins the filter every adapter must implement
 // identically — the one place where two adapters disagreeing would be a
 // billing discrepancy rather than a test failure.
-func runRangeSemantics(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runRangeSemantics(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -855,7 +867,7 @@ func runRangeSemantics(t *testing.T, newLedger func(t *testing.T) Ledger) {
 	})
 }
 
-func runInvalidRange(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runInvalidRange(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -889,7 +901,7 @@ func runInvalidRange(t *testing.T, newLedger func(t *testing.T) Ledger) {
 // the operator's log file's. Validation is exactly the moment a careless
 // error message copies an untrusted value into a string that is logged,
 // aggregated and retained, so every adapter is made to prove it does not.
-func runNoDimensionValueLeak(t *testing.T, newLedger func(t *testing.T) Ledger) {
+func runNoDimensionValueLeak(t *testing.T, newLedger func(t *testing.T) ledger.Ledger) {
 	led := newLedger(t)
 	ctx := context.Background()
 
@@ -982,7 +994,7 @@ func eventAt(at time.Time, sourceRef string) domain.UsageEvent {
 	}
 }
 
-// foreignTx is a Tx no adapter produced: the handle an adapter must refuse
+// foreignTx is a ledger.Tx no adapter produced: the handle an adapter must refuse
 // rather than ignore.
 type foreignTx struct{}
 
@@ -997,7 +1009,7 @@ func mustNormalize(t *testing.T, e domain.UsageEvent) domain.UsageEvent {
 	return n
 }
 
-func mustBegin(ctx context.Context, t *testing.T, led Ledger) OwnedTx {
+func mustBegin(ctx context.Context, t *testing.T, led ledger.Ledger) ledger.OwnedTx {
 	t.Helper()
 	tx, err := led.Begin(ctx)
 	if err != nil {
@@ -1007,7 +1019,7 @@ func mustBegin(ctx context.Context, t *testing.T, led Ledger) OwnedTx {
 }
 
 // mustAppendCommit appends events in one transaction and commits it.
-func mustAppendCommit(ctx context.Context, t *testing.T, led Ledger, events ...domain.UsageEvent) {
+func mustAppendCommit(ctx context.Context, t *testing.T, led ledger.Ledger, events ...domain.UsageEvent) {
 	t.Helper()
 	tx := mustBegin(ctx, t, led)
 	if err := led.Append(ctx, tx, events...); err != nil {
@@ -1020,7 +1032,7 @@ func mustAppendCommit(ctx context.Context, t *testing.T, led Ledger, events ...d
 }
 
 // mustRead reads r in a transaction of its own and rolls it back.
-func mustRead(ctx context.Context, t *testing.T, led Ledger, r domain.Range) []domain.UsageEvent {
+func mustRead(ctx context.Context, t *testing.T, led ledger.Ledger, r domain.Range) []domain.UsageEvent {
 	t.Helper()
 	tx := mustBegin(ctx, t, led)
 	defer rollback(ctx, t, tx)
@@ -1032,30 +1044,30 @@ func mustRead(ctx context.Context, t *testing.T, led Ledger, r domain.Range) []d
 }
 
 // rollback rolls tx back and fails the test if that errors, so a deferred
-// rollback cannot swallow a real adapter fault. ErrTxDone is tolerated:
+// rollback cannot swallow a real adapter fault. ledger.ErrTxDone is tolerated:
 // callers defer this after paths that may already have committed.
-func rollback(ctx context.Context, t *testing.T, tx OwnedTx) {
+func rollback(ctx context.Context, t *testing.T, tx ledger.OwnedTx) {
 	t.Helper()
-	if err := tx.Rollback(ctx); err != nil && !errors.Is(err, ErrTxDone) {
+	if err := tx.Rollback(ctx); err != nil && !errors.Is(err, ledger.ErrTxDone) {
 		t.Errorf("Rollback: %v", err)
 	}
 }
 
 // assertTxDone checks that every method rejects a finished transaction.
-func assertTxDone(ctx context.Context, t *testing.T, led Ledger, tx OwnedTx, what string) {
+func assertTxDone(ctx context.Context, t *testing.T, led ledger.Ledger, tx ledger.OwnedTx, what string) {
 	t.Helper()
 
-	if err := led.Append(ctx, tx, eventAt(suiteStart, "after-finish")); !errors.Is(err, ErrTxDone) {
-		t.Errorf("Append on %s returned %v, want ErrTxDone", what, err)
+	if err := led.Append(ctx, tx, eventAt(suiteStart, "after-finish")); !errors.Is(err, ledger.ErrTxDone) {
+		t.Errorf("Append on %s returned %v, want ledger.ErrTxDone", what, err)
 	}
-	if _, err := led.ReadRange(ctx, tx, fullWindow()); !errors.Is(err, ErrTxDone) {
-		t.Errorf("ReadRange on %s returned %v, want ErrTxDone", what, err)
+	if _, err := led.ReadRange(ctx, tx, fullWindow()); !errors.Is(err, ledger.ErrTxDone) {
+		t.Errorf("ReadRange on %s returned %v, want ledger.ErrTxDone", what, err)
 	}
-	if err := tx.Commit(ctx); !errors.Is(err, ErrTxDone) {
-		t.Errorf("Commit on %s returned %v, want ErrTxDone", what, err)
+	if err := tx.Commit(ctx); !errors.Is(err, ledger.ErrTxDone) {
+		t.Errorf("Commit on %s returned %v, want ledger.ErrTxDone", what, err)
 	}
-	if err := tx.Rollback(ctx); !errors.Is(err, ErrTxDone) {
-		t.Errorf("Rollback on %s returned %v, want ErrTxDone", what, err)
+	if err := tx.Rollback(ctx); !errors.Is(err, ledger.ErrTxDone) {
+		t.Errorf("Rollback on %s returned %v, want ledger.ErrTxDone", what, err)
 	}
 }
 

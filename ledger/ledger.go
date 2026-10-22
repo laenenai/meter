@@ -23,21 +23,27 @@
 // for which fields are deliberately outside it.
 //
 // This package is public, not internal, for a reason the charter states:
-// a consumer counts as having adopted this module when RunLedgerSuite in
-// suite.go runs green in that consumer's CI against its own wiring. A
-// conformance suite behind an internal package could not be run by the
-// people it exists to hold to account. That suite, not this file, is the
-// authoritative description of the contract's edge-case behaviour — the
+// a consumer counts as having adopted this module when the conformance
+// suite runs green in that consumer's CI against its own wiring. A suite
+// behind an internal package could not be run by the people it exists to
+// hold to account.
+//
+// That suite is metertest.RunLedgerSuite, in the sibling package
+// github.com/laenen-ai/meter/metertest, and it — not this file — is the
+// authoritative description of the contract's edge-case behaviour: the
 // exact boundary semantics of a window, what a duplicate key does when its
 // quantity disagrees, what a rolled-back transaction must leave behind, and
 // what a range read must look like while other transactions are appending.
+// It lives beside this package rather than in it so that importing the port
+// does not drag testing, and its flag registrations, into a consumer's
+// production binary — the relationship httptest has to http.
 //
 // No error returned by any Ledger method, and no message logged by an
 // adapter, may contain a dimension value. A dimension value is a document
 // id, a principal id, an agent run id or a matter reference; a usage event
 // is not payload, but its attribution is still the tenant's business and
-// not the operator's log file's. See suite.go's NoDimensionValuesLeakInErrors
-// subtest, which every adapter exercises.
+// not the operator's log file's. See metertest's
+// NoDimensionValuesLeakInErrors subtest, which every adapter exercises.
 package ledger
 
 import (
@@ -146,7 +152,8 @@ type OwnedTx interface {
 
 // Ledger is the port every usage-ledger adapter implements: the in-memory
 // adapter in this package, and the Postgres adapter a later increment adds.
-// See the package doc comment and suite.go for the full contract.
+// See the package doc comment and metertest.RunLedgerSuite for the full
+// contract.
 type Ledger interface {
 	// Begin starts a unit of work this Ledger owns.
 	//

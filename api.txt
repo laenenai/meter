@@ -52,7 +52,6 @@ func (m *Memory) Append(_ context.Context, tx Tx, events ...domain.UsageEvent) e
 func (m *Memory) Begin(_ context.Context) (OwnedTx, error)
 func (m *Memory) ReadRange(_ context.Context, tx Tx, r domain.Range) ([]domain.UsageEvent, error)
 func NewMemory() *Memory
-func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) Ledger)
 type Ledger interface {
 	Begin(ctx context.Context) (OwnedTx, error)
 	Append(ctx context.Context, tx Tx, events ...domain.UsageEvent) error
@@ -71,3 +70,7 @@ var ErrForeignTx = errors.New("meter: foreign transaction")
 var ErrIdempotencyConflict = errors.New("meter: idempotency conflict")
 var ErrNoTx = errors.New("meter: no transaction")
 var ErrTxDone = errors.New("meter: transaction already committed or rolled back")
+
+package metertest // import "github.com/laenen-ai/meter/metertest"
+
+func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) ledger.Ledger)

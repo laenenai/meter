@@ -21,8 +21,8 @@ import (
 // the transaction Append joins is the caller's own and the uniqueness
 // constraint that makes emission idempotent is an index rather than a map.
 //
-// What it does take seriously is the *semantics*, because that is what the
-// suite pins and what a consumer's tests will come to rely on:
+// What it does take seriously is the *semantics*, because that is what
+// metertest.RunLedgerSuite pins and what a consumer's tests will come to rely on:
 //
 //   - A transaction is a snapshot taken at Begin plus that transaction's
 //     own pending appends, so a read inside one transaction is repeatable
