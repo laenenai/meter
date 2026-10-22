@@ -1,76 +1,261 @@
-# The public API of this module, as a golden file. Regenerate with `mise run api`.
-# Growing this surface is a reviewed diff: see CHARTER.md.
+# Public API of github.com/laenen-ai/meter, as a golden file.
+#
+# Regenerate with: go test . -run TestAPIGolden -update-api
+#
+# "package audit" is the facade a consumer imports; "package audittest" is
+# the conformance suite it runs against its own wiring. The internal
+# packages are listed too, because the facade re-exports their types as
+# aliases: a change to one of those signatures changes what a consumer
+# sees, even though the import path itself is private. Growing this file is
+# a reviewed diff — see CHARTER.md.
 
-package meter // import "github.com/laenen-ai/meter"
+package meter // .
 
 const DimensionAgentRunID = domain.DimensionAgentRunID
+
 const DimensionCapabilityChain = domain.DimensionCapabilityChain
+
 const DimensionDocumentID = domain.DimensionDocumentID
+
 const DimensionFilesetID = domain.DimensionFilesetID
+
 const DimensionJobID = domain.DimensionJobID
+
 const DimensionLane = domain.DimensionLane
+
 const DimensionModelID = domain.DimensionModelID
+
 const DimensionPrincipalID = domain.DimensionPrincipalID
+
 const DimensionProcessorID = domain.DimensionProcessorID
+
 const DimensionProcessorVersion = domain.DimensionProcessorVersion
+
 const DimensionRegion = domain.DimensionRegion
+
 const DimensionTier = domain.DimensionTier
-const MaxDimensionKeyLen = domain.MaxDimensionKeyLen
-const MaxDimensionValueLen = domain.MaxDimensionValueLen
-const MaxDimensions = domain.MaxDimensions
-const ShapeEvent = domain.ShapeEvent
-const ShapeGaugeDelta = domain.ShapeGaugeDelta
-const ShapeUnspecified = domain.ShapeUnspecified
-const UnitByte = domain.UnitByte
-const UnitCount = domain.UnitCount
-const UnitMillisecond = domain.UnitMillisecond
-const UnitPage = domain.UnitPage
-const UnitToken = domain.UnitToken
+
 type Dimensions = domain.Dimensions
-type IdempotencyKey = domain.IdempotencyKey
-type Ledger = ledger.Ledger
-type MetricID = domain.MetricID
-type MetricShape = domain.MetricShape
-type OwnedTx = ledger.OwnedTx
-type Quantity = domain.Quantity
-type Range = domain.Range
-type TenantID = domain.TenantID
-type Tx = ledger.Tx
-type Unit = domain.Unit
-type UsageEvent = domain.UsageEvent
+
 var ErrForeignTx = ledger.ErrForeignTx
+
 var ErrIdempotencyConflict = ledger.ErrIdempotencyConflict
+
 var ErrInvalidEvent = domain.ErrInvalidEvent
+
 var ErrInvalidRange = domain.ErrInvalidRange
+
 var ErrNegativeQuantity = domain.ErrNegativeQuantity
+
 var ErrNoTx = ledger.ErrNoTx
+
 var ErrTxDone = ledger.ErrTxDone
 
-package ledger // import "github.com/laenen-ai/meter/ledger"
+type IdempotencyKey = domain.IdempotencyKey
 
-func (m *Memory) Append(_ context.Context, tx Tx, events ...domain.UsageEvent) error
-func (m *Memory) Begin(_ context.Context) (OwnedTx, error)
-func (m *Memory) ReadRange(_ context.Context, tx Tx, r domain.Range) ([]domain.UsageEvent, error)
-func NewMemory() *Memory
+type Ledger = ledger.Ledger
+
+const MaxDimensionKeyLen = domain.MaxDimensionKeyLen
+
+const MaxDimensionValueLen = domain.MaxDimensionValueLen
+
+const MaxDimensions = domain.MaxDimensions
+
+type MetricID = domain.MetricID
+
+type MetricShape = domain.MetricShape
+
+type OwnedTx = ledger.OwnedTx
+
+type Quantity = domain.Quantity
+
+type Range = domain.Range
+
+const ShapeEvent = domain.ShapeEvent
+
+const ShapeGaugeDelta = domain.ShapeGaugeDelta
+
+const ShapeUnspecified = domain.ShapeUnspecified
+
+type TenantID = domain.TenantID
+
+type Tx = ledger.Tx
+
+type Unit = domain.Unit
+
+const UnitByte = domain.UnitByte
+
+const UnitCount = domain.UnitCount
+
+const UnitMillisecond = domain.UnitMillisecond
+
+const UnitPage = domain.UnitPage
+
+const UnitToken = domain.UnitToken
+
+type UsageEvent = domain.UsageEvent
+
+package metertest // metertest
+
+func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) ledger.Ledger)
+
+package domain // internal/domain
+
+func CompareUsageEvents(a, b UsageEvent) int
+
+const DimensionAgentRunID = "agent_run_id"
+
+const DimensionCapabilityChain = "capability_chain"
+
+const DimensionDocumentID = "document_id"
+
+const DimensionFilesetID = "fileset_id"
+
+const DimensionJobID = "job_id"
+
+const DimensionLane = "lane"
+
+const DimensionModelID = "model_id"
+
+const DimensionPrincipalID = "principal_id"
+
+const DimensionProcessorID = "processor_id"
+
+const DimensionProcessorVersion = "processor_version"
+
+const DimensionRegion = "region"
+
+const DimensionTier = "tier"
+
+type Dimensions map[string]string
+
+func (Dimensions) Canonical() string
+
+func (Dimensions) Clone() Dimensions
+
+func (Dimensions) Equal(other Dimensions) bool
+
+func (Dimensions) Keys() []string
+
+func (Dimensions) Validate() error
+
+var ErrInvalidEvent = errors.New("meter: invalid usage event")
+
+var ErrInvalidRange = errors.New("meter: invalid range")
+
+var ErrNegativeQuantity = errors.New("meter: negative quantity for a non-delta metric")
+
+type IdempotencyKey struct {
+	TenantID TenantID
+	MetricID MetricID
+	Source string
+	SourceRef string
+}
+
+func (IdempotencyKey) String() string
+
+const MaxDimensionKeyLen = 64
+
+const MaxDimensionValueLen = 256
+
+const MaxDimensions = 32
+
+type MetricID string
+
+type MetricShape uint8
+
+func (MetricShape) AllowsNegative() bool
+
+func (MetricShape) String() string
+
+func (MetricShape) Valid() bool
+
+type Quantity int64
+
+type Range struct {
+	TenantID TenantID
+	MetricID MetricID
+	From time.Time
+	To time.Time
+	Limit int
+}
+
+func (Range) Matches(e UsageEvent) bool
+
+func (Range) Validate() error
+
+const ShapeEvent
+
+const ShapeGaugeDelta
+
+const ShapeUnspecified MetricShape = iota
+
+type TenantID string
+
+type Unit string
+
+const UnitByte Unit = "byte"
+
+const UnitCount Unit = "count"
+
+const UnitMillisecond Unit = "millisecond"
+
+const UnitPage Unit = "page"
+
+const UnitToken Unit = "token"
+
+type UsageEvent struct {
+	TenantID TenantID
+	MetricID MetricID
+	Shape MetricShape
+	Unit Unit
+	Quantity Quantity
+	OccurredAt time.Time
+	Source string
+	SourceRef string
+	Dimensions Dimensions
+}
+
+func (UsageEvent) IdempotencyKey() IdempotencyKey
+
+func (UsageEvent) Normalize() (UsageEvent, error)
+
+func (UsageEvent) SameBillableContent(other UsageEvent) bool
+
+package ledger // ledger
+
+var ErrForeignTx = errors.New("meter: foreign transaction")
+
+var ErrIdempotencyConflict = errors.New("meter: idempotency conflict")
+
+var ErrNoTx = errors.New("meter: no transaction")
+
+var ErrTxDone = errors.New("meter: transaction already committed or rolled back")
+
 type Ledger interface {
 	Begin(ctx context.Context) (OwnedTx, error)
 	Append(ctx context.Context, tx Tx, events ...domain.UsageEvent) error
 	ReadRange(ctx context.Context, tx Tx, r domain.Range) ([]domain.UsageEvent, error)
 }
-type Memory struct{}
+
+type Memory struct {
+	// has unexported fields
+}
+
+func (*Memory) Append(_ context.Context, tx Tx, events ...domain.UsageEvent) error
+
+func (*Memory) Begin(_ context.Context) (OwnedTx, error)
+
+func (*Memory) ReadRange(_ context.Context, tx Tx, r domain.Range) ([]domain.UsageEvent, error)
+
+func NewMemory() *Memory
+
 type OwnedTx interface {
 	Tx
 	Commit(ctx context.Context) error
 	Rollback(ctx context.Context) error
 }
+
 type Tx interface {
 	LedgerTx()
 }
-var ErrForeignTx = errors.New("meter: foreign transaction")
-var ErrIdempotencyConflict = errors.New("meter: idempotency conflict")
-var ErrNoTx = errors.New("meter: no transaction")
-var ErrTxDone = errors.New("meter: transaction already committed or rolled back")
-
-package metertest // import "github.com/laenen-ai/meter/metertest"
-
-func RunLedgerSuite(t *testing.T, newLedger func(t *testing.T) ledger.Ledger)
