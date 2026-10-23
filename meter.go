@@ -9,7 +9,7 @@
 //
 // Every domain entity and value object lives in internal/domain and nowhere
 // else; this file re-exports the ones a consumer needs to name as type
-// aliases, so an importer of github.com/laenen-ai/meter never reaches into
+// aliases, so an importer of github.com/laenenai/meter never reaches into
 // an internal package (Go's internal rule would refuse that anyway).
 // Aliasing also means a value internal/domain produces and a value a
 // consumer holds are the identical type, not a copy that needs converting
@@ -17,8 +17,8 @@
 //
 // This file declares aliases, re-exported constants and re-exported
 // sentinel errors only — no behaviour and no constructors. The port itself
-// and its adapters live in github.com/laenen-ai/meter/ledger, and its
-// conformance suite in the sibling github.com/laenen-ai/meter/metertest.
+// and its adapters live in github.com/laenenai/meter/ledger, and its
+// conformance suite in the sibling github.com/laenenai/meter/metertest.
 // Both are non-internal packages because the charter makes adoption mean
 // "this module's suite runs green in the consumer's CI": a suite behind an
 // internal package could not be run by the people it exists to hold to
@@ -28,8 +28,8 @@
 package meter
 
 import (
-	"github.com/laenen-ai/meter/internal/domain"
-	"github.com/laenen-ai/meter/ledger"
+	"github.com/laenenai/meter/internal/domain"
+	"github.com/laenenai/meter/ledger"
 )
 
 type (

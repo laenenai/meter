@@ -29,7 +29,7 @@
 // hold to account.
 //
 // That suite is metertest.RunLedgerSuite, in the sibling package
-// github.com/laenen-ai/meter/metertest, and it — not this file — is the
+// github.com/laenenai/meter/metertest, and it — not this file — is the
 // authoritative description of the contract's edge-case behaviour: the
 // exact boundary semantics of a window, what a duplicate key does when its
 // quantity disagrees, what a rolled-back transaction must leave behind, and
@@ -50,7 +50,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenenai/meter/internal/domain"
 )
 
 // ErrNoTx is returned by Append and ReadRange when tx is nil. There is no

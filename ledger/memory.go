@@ -7,7 +7,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenenai/meter/internal/domain"
 )
 
 // Memory is an in-memory Ledger: the adapter a consumer's unit tests wire
