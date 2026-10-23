@@ -3,8 +3,8 @@ package ledger_test
 import (
 	"testing"
 
-	"github.com/laenen-ai/meter/ledger"
-	"github.com/laenen-ai/meter/metertest"
+	"github.com/laenenai/meter/ledger"
+	"github.com/laenenai/meter/metertest"
 )
 
 func newMemoryLedger(t *testing.T) ledger.Ledger {

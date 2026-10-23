@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenenai/meter/internal/domain"
 )
 
 // occurred is a fixed, deliberately non-UTC instant with sub-microsecond

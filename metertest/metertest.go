@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/laenen-ai/meter/internal/domain"
-	"github.com/laenen-ai/meter/ledger"
+	"github.com/laenenai/meter/internal/domain"
+	"github.com/laenenai/meter/ledger"
 )
 
 // RunLedgerSuite runs the contract every ledger.Ledger adapter must satisfy.

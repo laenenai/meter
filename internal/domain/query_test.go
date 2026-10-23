@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenenai/meter/internal/domain"
 )
 
 var (

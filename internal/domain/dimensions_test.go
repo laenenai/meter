@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/laenen-ai/meter/internal/domain"
+	"github.com/laenenai/meter/internal/domain"
 )
 
 func TestDimensionsValidate(t *testing.T) {
